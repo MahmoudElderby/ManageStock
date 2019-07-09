@@ -1,0 +1,76 @@
+﻿
+@model IEnumerable<ManageStock.Models.Stock>
+
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Index</h2>
+
+
+<table id="Stocks" class="table table-bordered table-hover">
+    <thead>
+        <tr>
+            <th>Stock</th>
+            <th>Price</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+
+
+@section scripts
+{
+<script src="/signalr/hubs"></script>
+    <script>
+        var Temp;
+        var Userid = "xyz";
+        $(function () {
+            $.ajax({
+                type: "GET",
+                url: "/Api/Market",
+                async: false,
+                success:
+                function (data) {
+                    Temp = data;
+                }
+            });
+
+            function updatePrices() {
+                for (var key in Temp) {
+                    Temp[key].Price = Math.floor(Math.random() * 100) + 1;
+                }
+
+                $("#Stocks").dataTable().fnDestroy();
+                var table = $("#Stocks").DataTable({
+                    "bAutoWidth": false,
+                    "aaData": Temp,
+                    "columns": [{
+                        "data": "Name"
+                    }, {
+                        "data": "Price"
+                    }]
+
+                });
+
+
+            }
+            setInterval(updatePrices, 10000);
+
+
+            var chat = $.connection.appHub;
+
+            chat.client.get = function () {
+                chat.server.takeData(Temp);
+            };
+
+            $.connection.hub.start().done(function () {
+                $('#sendmessage').click(function () {
+                    chat.server.takeData(Temp);
+                });
+            });
+        });
+    </script>
+}

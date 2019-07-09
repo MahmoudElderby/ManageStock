@@ -1,0 +1,153 @@
+﻿
+@model IEnumerable<ManageStock.OrdersViewModel>
+
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Index</h2>
+
+<p>
+    @Html.ActionLink("Add Orders", "Add")
+</p>
+
+
+<table id="Orders" class="table table-bordered table-hover">
+    <thead>
+        <tr>
+            <th>PersonName</th>
+            <th>StockName</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Commission</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+
+
+<div id="container">
+    <input type="text" id="message" />
+    <input type="button" id="sendmessage" value="Send" />
+    <input type="hidden" id="displayname" />
+
+    <input type="button" id="test" value="test" />
+
+    <ul id="discussion"></ul>
+
+</div>
+
+
+@section scripts
+{
+<script src="/signalr/hubs"></script>
+    <script>
+        var Temp;
+        $(function () {
+            $.ajax({
+                type: "GET",
+                url: "/Api/order",
+                async: false,
+                success:
+                function (data) {
+                    Temp = data;
+                }
+            });
+
+            $("#Orders").dataTable().fnDestroy();
+            var table = $("#Orders").DataTable({
+                "bAutoWidth": false,
+                "aaData": Temp,
+                "columns": [
+                {
+                        "data": "PersonName"
+                    },
+                    {
+                        "data": "StockName"
+                }, {
+                        "data": "Price"
+                    }, {
+                        "data": "Quantity"
+                }, {
+                        "data": "Commission"
+                }]
+
+            });
+
+
+            function GetPricesFromHub() {
+                chat.server.getPrices();
+            }
+
+
+            var chat = $.connection.appHub;
+
+            chat.client.updatePrices = function (ret) {
+                $.ajax({
+                    type: "POST",
+                    url: "/Api/order",
+                    data: JSON.stringify(ret),
+	                contentType: "application/json; charset=utf-8",
+	                dataType: "json",
+                    success:
+                    function (data) {
+                        Temp = data;
+                    },
+                    fail: function (err)
+                    {
+                        console.log("err")
+                    }
+                });
+
+
+                $("#Orders").dataTable().fnDestroy();
+                var table = $("#Orders").DataTable({
+                    "bAutoWidth": false,
+                    "aaData": Temp,
+                    "columns": [
+                        {
+                            "data": "PersonName"
+                        },
+                        {
+                            "data": "StockName"
+                        }, {
+                            "data": "Price"
+                        }, {
+                            "data": "Quantity"
+                        }, {
+                            "data": "Commission"
+                        }]
+
+                });
+
+               
+            };
+
+
+
+        
+            $.connection.hub.start().done(function () {
+                $('#sendmessage').click(function () {
+                    // Call the Send method on the hub.
+                    chat.server.send($('#displayname').val(), $('#message').val());
+                    // Clear text box and reset focus for next comment.
+                    $('#message').val('').focus();
+                });
+
+                $('#test').click(function () {
+                    // Call the Send method on the hub.
+                    chat.server.getPrices();
+                    // Clear text box and reset focus for next comment.
+                    //$('#message').val('').focus();
+                });
+            });
+
+            setInterval(GetPricesFromHub, 10000);
+        });
+
+
+
+    </script>
+}
